@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plural Bubbles</title>
+  <style>
+    :root{
+      --bg1:#0b1020;
+      --bg2:#111a33;
+      --card:#0f1730cc;
+      --text:#eef2ff;
+      --muted:#b8c0ff;
+      --good:#34d399;
+      --bad:#fb7185;
+      --blue:#60a5fa;
+      --purple:#a78bfa;
+      --red:#fb7185;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    body{
+      background: radial-gradient(1200px 700px at 30% 20%, #20306a 0%, transparent 55%),
+                  radial-gradient(900px 600px at 80% 30%, #5b2a6f55 0%, transparent 60%),
+                  linear-gradient(180deg,var(--bg1),var(--bg2));
+      color:var(--text);
+      overflow:hidden;
+    }
+
+    /* Layout */
+    .ui{
+      position:fixed; inset:16px 16px auto 16px;
+      display:flex; gap:12px; align-items:stretch; justify-content:space-between;
+      pointer-events:none;
+    }
+    .panel{
+      pointer-events:auto;
+      background:var(--card);
+      backdrop-filter: blur(8px);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+      min-width: 280px;
+    }
+    .panel.small{min-width:220px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .title{font-weight:700;letter-spacing:.2px}
+    .muted{color:var(--muted);font-size:13px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .chip{
+      font-size:12px; padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+    .chip.green{outline:2px solid color-mix(in oklab, var(--good) 70%, transparent)}
+    .chip.blue{outline:2px solid color-mix(in oklab, var(--blue) 70%, transparent)}
+    .chip.purple{outline:2px solid color-mix(in oklab, var(--purple) 70%, transparent)}
+    .chip.red{outline:2px solid color-mix(in oklab, var(--red) 70%, transparent)}
+
+    .progressWrap{margin-top:10px}
+    .progressBar{
+      height:10px;border-radius:999px;background:rgba(255,255,255,.10);
+      overflow:hidden;border:1px solid rgba(255,255,255,.12);
+    }
+    .progressFill{
+      height:100%; width:0%;
+      background: linear-gradient(90deg, var(--good), #22c55e);
+      border-radius:999px;
+      transition: width .25s ease;
+    }
+
+    .btn{
+      pointer-events:auto;
+      border:0;
+      background: linear-gradient(180deg,#ffffff22,#ffffff10);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.18);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{
+      background: linear-gradient(180deg,#34d399,#22c55e);
+      color:#0b1020;
+      border:0;
+    }
+
+    /* Game field */
+    #field{
+      position:fixed; inset:0;
+    }
+    .bubble{
+      position:absolute;
+      width:110px; height:110px;
+      display:flex; align-items:center; justify-content:center;
+      border-radius:999px;
+      background: radial-gradient(circle at 30% 30%, #ffffff3d, #ffffff12 55%, #ffffff08 100%);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 12px 30px rgba(0,0,0,.22);
+      user-select:none;
+      cursor:pointer;
+      transition: transform .12s ease;
+    }
+    .bubble:hover{transform:scale(1.03)}
+    .bubble img{
+      width:110px; height:110px;
+      object-fit:contain;
+      pointer-events:none;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,.18));
+    }
+    .pop{
+      animation: pop .35s ease forwards;
+    }
+    @keyframes pop{
+      0%{transform:scale(1)}
+      60%{transform:scale(1.18)}
+      100%{transform:scale(.2);opacity:0}
+    }
+    .wrong{
+      animation: shake .25s ease;
+      outline:2px solid color-mix(in oklab, var(--bad) 65%, transparent);
+    }
+    @keyframes shake{
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-6px)}
+      50%{transform:translateX(6px)}
+      75%{transform:translateX(-4px)}
+    }
+
+    /* Center overlay */
+    .overlay{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.45);
+      backdrop-filter: blur(6px);
+    }
+    .card{
+      width:min(720px,92vw);
+      background: rgba(15,23,48,.92);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .card h1{margin:0 0 6px 0;font-size:18px}
+    .card p{margin:6px 0;color:var(--muted);line-height:1.35}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .kbd{
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+      font-size:12px;
+      padding:2px 8px;border-radius:10px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+    }
+    @media (max-width:700px){
+      .ui{flex-direction:column;align-items:stretch}
+      .panel{min-width:auto}
+      .grid2{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div id="field" aria-label="game field"></div>
+
+  <div class="ui">
+    <div class="panel">
+      <div class="row">
+        <div>
+          <div class="title">Plural Bubbles</div>
+          <div class="muted" id="subtitle">Найди нужную форму</div>
+        </div>
+        <button class="btn primary" id="btnSpeak" title="Повторить озвучку">🔊</button>
+      </div>
+
+      <div class="chips" id="chips"></div>
+
+      <div class="progressWrap">
+        <div class="row">
+          <div class="muted">Прогресс: <span id="scoreText">0</span>/<span id="goalText">10</span></div>
+          <div class="muted">Время: <span id="timeText">—</span></div>
+        </div>
+        <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+      </div>
+    </div>
+
+    <div class="panel small">
+      <div class="row">
+        <button class="btn" id="btnLevel">Уровень: 🟢</button>
+        <button class="btn" id="btnReset">Сброс</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0 0">
+        Нажимай на стикеры в пузырях.<br/>
+        <span class="kbd">Space</span> — повтор озвучки
+      </p>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <h1>Старт игры (звук + пузыри)</h1>
+      <p>
+        Нажми <b>Start</b>, чтобы включить озвучку и начать ловить правильные формы множественного числа.
+        (Браузер включает звук после первого клика — это нормально.)
+      </p>
+      <div class="grid2" style="margin-top:12px">
+        <div class="panel" style="margin:0">
+          <div class="title">Уровни</div>
+          <div class="muted">🟢 обучающий → 🔵 стандарт → 🟣 предложения → 🔴 челлендж</div>
+          <div class="chips" style="margin-top:10px">
+            <span class="chip green">🟢 2–3 вариантов</span>
+            <span class="chip blue">🔵 4–6 вариантов</span>
+            <span class="chip purple">🟣 фраза/предложение</span>
+            <span class="chip red">🔴 таймер + скорость</span>
+          </div>
+        </div>
+        <div class="panel" style="margin:0">
+          <div class="title">Управление</div>
+          <p class="muted" style="margin:8px 0 0 0">
+            Нажимай по пузырям. Кнопка 🔊 повторяет задание. На 🔴 уровне важно успевать.
+          </p>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <button class="btn" id="btnClose">Start</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  // CONFIG (правьте под себя)
+  // =========================
+  const ASSET = (p) => `assets/${p}`;
+
+  const DATA = [
+    { key:"goose",  singular:"goose",  plural:"geese",  img1:ASSET("goose_1.png"),  img3:ASSET("goose_3.png") },
+    { key:"sheep",  singular:"sheep",  plural:"sheep",  img1:ASSET("sheep_1.png"),  img3:ASSET("sheep_3.png") },
+    { key:"deer",   singular:"deer",   plural:"deer",   img1:ASSET("deer_1.png"),   img3:ASSET("deer_3.png") },
+    { key:"fish",   singular:"fish",   plural:"fish",   img1:ASSET("fish_1.png"),   img3:ASSET("fish_3.png") },
+    { key:"mouse",  singular:"mouse",  plural:"mice",   img1:ASSET("mouse_1.png"),  img3:ASSET("mouse_3.png") },
+    { key:"man",    singular:"man",    plural:"men",    img1:ASSET("man_1.png"),    img3:ASSET("man_3.png") },
+    { key:"woman",  singular:"woman",  plural:"women",  img1:ASSET("woman_1.png"),  img3:ASSET("woman_3.png") },
+  ];
+
+  const LEVELS = [
+    { id:1, name:"🟢 обучающий", color:"var(--good)",  bubbles:10, speed:0.60, goal:10, timerSec:0,  mode:"word",     showText:true  },
+    { id:2, name:"🔵 стандарт",  color:"var(--blue)",  bubbles:14, speed:0.90, goal:12, timerSec:60, mode:"word",     showText:true  },
+    { id:3, name:"🟣 сюжетный",  color:"var(--purple)",bubbles:16, speed:1.05, goal:12, timerSec:60, mode:"sentence", showText:true  },
+    { id:4, name:"🔴 челлендж",  color:"var(--red)",   bubbles:18, speed:1.25, goal:14, timerSec:45, mode:"word",     showText:false },
+  ];
+
+  // =========================
+  // HELPERS
+  // =========================
+  const $ = (sel) => document.querySelector(sel);
+  const field = $("#field");
+  const overlay = $("#overlay");
+  const btnClose = $("#btnClose");
+  const btnLevel = $("#btnLevel");
+  const btnReset = $("#btnReset");
+  const btnSpeak = $("#btnSpeak");
+  const subtitle = $("#subtitle");
+  const chips = $("#chips");
+  const progressFill = $("#progressFill");
+  const scoreText = $("#scoreText");
+  const goalText = $("#goalText");
+  const timeText = $("#timeText");
+
+  const clamp = (v,min,max) => Math.max(min, Math.min(max, v));
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
+  const shuffle = (arr) => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+
+  // WebAudio pop (simple)
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }
+  function playPop(ok=true){
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = ok ? "triangle" : "square";
+    o.frequency.setValueAtTime(ok ? 520 : 180, t);
+    o.frequency.exponentialRampToValueAtTime(ok ? 260 : 120, t + 0.10);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + 0.16);
+  }
+
+  // Speech (TTS)
+  function speak(text){
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US";
+      u.rate = 0.92;
+      u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  // =========================
+  // GAME STATE
+  // =========================
+  let levelIndex = 0;
+  let level = LEVELS[levelIndex];
+  let score = 0;
+  let goal = level.goal;
+  let timeLeft = level.timerSec;
+  let timerHandle = null;
+
+  let target = null;   // { item, form: "singular"|"plural", text, audioText }
+  let bubbles = [];    // {el,x,y,vx,vy,isCorrect}
+
+  function updateUI(){
+    btnLevel.textContent = `Уровень: ${["🟢","🔵","🟣","🔴"][levelIndex]}`;
+    goalText.textContent = String(goal);
+    scoreText.textContent = String(score);
+    progressFill.style.width = `${clamp((score/goal)*100,0,100)}%`;
+
+    if(level.timerSec > 0){
+      timeText.textContent = `${timeLeft}s`;
+    } else {
+      timeText.textContent = "—";
+    }
+
+    chips.innerHTML = "";
+    const chip1 = document.createElement("span");
+    chip1.className = "chip";
+    chip1.textContent = level.name;
+    chips.appendChild(chip1);
+
+    const chip2 = document.createElement("span");
+    chip2.className = "chip";
+    chip2.textContent = level.mode === "sentence" ? "Предложения" : "Слова";
+    chips.appendChild(chip2);
+
+    const chip3 = document.createElement("span");
+    chip3.className = "chip";
+    chip3.textContent = level.timerSec ? `Таймер: ${level.timerSec}s` : "Без таймера";
+    chips.appendChild(chip3);
+  }
+
+  function sentenceFor(item, form){
+    const qty = (form === "plural") ? "three" : "one";
+    const word = (form === "plural") ? item.plural : item.singular;
+    return `I can see ${qty} ${word}.`;
+  }
+
+  function pickTarget(){
+    const item = pick(DATA);
+    const form = Math.random() < 0.5 ? "singular" : "plural";
+    const word = (form === "plural") ? item.plural : item.singular;
+
+    const text = level.mode === "sentence"
+      ? sentenceFor(item, form)
+      : word;
+
+    const audioText = text; // same for now
+    return { item, form, word, text, audioText };
+  }
+
+  function makeBubble(stickerUrl, isCorrect){
+    const el = document.createElement("div");
+    el.className = "bubble";
+    el.setAttribute("role","button");
+    el.setAttribute("aria-label", isCorrect ? "correct bubble" : "bubble");
+
+    const img = document.createElement("img");
+    img.src = stickerUrl;
+    img.alt = "";
+    el.appendChild(img);
+
+    const size = rnd(96, 116);
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+    img.style.width = `${Math.round(size)}px`;
+    img.style.height = `${Math.round(size)}px`;
+
+    field.appendChild(el);
+    return el;
+  }
+
+  function clearField(){
+    field.innerHTML = "";
+    bubbles = [];
+  }
+
+  function chooseSticker(item, form){
+    return (form === "plural") ? item.img3 : item.img1;
+  }
+
+  function spawnRound(){
+    clearField();
+    target = pickTarget();
+
+    // Текст подсказки (можно выключить на красном)
+    subtitle.textContent = level.showText
+      ? `Нажми: ${target.text}`
+      : `Слушай и нажимай правильно`;
+
+    // Озвучка
+    speak(target.audioText);
+
+    // Сформируем набор пузырей: 1 правильный + остальные отвлекающие
+    const correctSticker = chooseSticker(target.item, target.form);
+
+    // Сколько пузырей сделать (по уровню)
+    const n = level.bubbles;
+
+    // Пул отвлекающих: другие животные и/или другая форма того же
+    const distractors = [];
+    for(const it of DATA){
+      distractors.push(chooseSticker(it, "singular"));
+      distractors.push(chooseSticker(it, "plural"));
+    }
+
+    // Уберём правильный стикер из отвлекающих, чтобы не было дубля
+    const pool = distractors.filter(u => u !== correctSticker);
+
+    // Собираем список картинок пузырей
+    let stickers = [correctSticker];
+    while(stickers.length < n){
+      stickers.push(pick(pool));
+    }
+    stickers = shuffle(stickers);
+
+    // Создаём пузыри
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    for(const url of stickers){
+      const isCorrect = (url === correctSticker);
+      const el = makeBubble(url, isCorrect);
+
+      const x = rnd(20, w-140);
+      const y = rnd(90, h-140);
+
+      const vx = rnd(-1,1) * level.speed * 80;
+      const vy = rnd(-1,1) * level.speed * 80;
+
+      const b = { el, x, y, vx, vy, isCorrect, alive:true };
+
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        onTapBubble(b);
+      });
+
+      bubbles.push(b);
+    }
+  }
+
+  function onTapBubble(b){
+    if(!b.alive) return;
+
+    if(b.isCorrect){
+      b.alive = false;
+      b.el.classList.add("pop");
+      playPop(true);
+
+      score += 1;
+      goal = level.goal;
+      updateUI();
+
+      // Переход/следующий раунд
+      setTimeout(() => {
+        if(score >= goal){
+          winLevel();
+        } else {
+          spawnRound();
+        }
+      }, 220);
+    } else {
+      b.el.classList.remove("wrong");
+      void b.el.offsetWidth; // restart animation
+      b.el.classList.add("wrong");
+      playPop(false);
+    }
+  }
+
+  function winLevel(){
+    clearInterval(timerHandle);
+    timerHandle = null;
+
+    overlay.style.display = "flex";
+    overlay.querySelector("h1").textContent = "Уровень пройден!";
+    overlay.querySelector("p").innerHTML =
+      `Отлично! Ты собрал нужное количество правильных ответов.<br/>Нажми <b>Next</b>, чтобы продолжить.`;
+
+    btnClose.textContent = (levelIndex < 3) ? "Next" : "Play again";
+  }
+
+  function resetLevel(){
+    clearInterval(timerHandle);
+    timerHandle = null;
+
+    score = 0;
+    goal = level.goal;
+    timeLeft = level.timerSec;
+
+    overlay.style.display = "none";
+    updateUI();
+
+    if(level.timerSec > 0){
+      timerHandle = setInterval(() => {
+        timeLeft -= 1;
+        if(timeLeft <= 0){
+          timeLeft = 0;
+          updateUI();
+          // проигрыш по времени: просто перезапуск уровня
+          score = 0;
+          timeLeft = level.timerSec;
+          spawnRound();
+        } else {
+          updateUI();
+        }
+      }, 1000);
+    }
+
+    spawnRound();
+  }
+
+  // Movement loop
+  let last = performance.now();
+  function tick(now){
+    const dt = Math.min(0.032, (now-last)/1000);
+    last = now;
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    for(const b of bubbles){
+      if(!b.alive) continue;
+
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+
+      // bounce
+      const rect = b.el.getBoundingClientRect();
+      const bw = rect.width, bh = rect.height;
+
+      if(b.x < 10){ b.x = 10; b.vx *= -1; }
+      if(b.y < 80){ b.y = 80; b.vy *= -1; }
+      if(b.x > w - bw - 10){ b.x = w - bw - 10; b.vx *= -1; }
+      if(b.y > h - bh - 10){ b.y = h - bh - 10; b.vy *= -1; }
+
+      b.el.style.left = `${b.x}px`;
+      b.el.style.top = `${b.y}px`;
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // Controls
+  btnSpeak.addEventListener("click", () => {
+    ensureAudio();
+    if(target) speak(target.audioText);
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if(e.code === "Space"){
+      e.preventDefault();
+      ensureAudio();
+      if(target) speak(target.audioText);
+    }
+  });
+
+  btnLevel.addEventListener("click", () => {
+    levelIndex = (levelIndex + 1) % LEVELS.length;
+    level = LEVELS[levelIndex];
+    // восстановить текст стартового окна (если открыто)
+    overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
+    overlay.querySelector("p").textContent =
+      "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
+    btnClose.textContent = "Start";
+    overlay.style.display = "flex";
+  });
+
+  btnReset.addEventListener("click", () => {
+    ensureAudio();
+    resetLevel();
+  });
+
+  btnClose.addEventListener("click", () => {
+    ensureAudio();
+
+    // если это Next после победы — переключаем уровень
+    if(btnClose.textContent === "Next"){
+      levelIndex += 1;
+      level = LEVELS[levelIndex];
+      btnClose.textContent = "Start";
+      overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
+      overlay.querySelector("p").textContent =
+        "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
+      resetLevel();
+      return;
+    }
+
+    if(btnClose.textContent === "Play again"){
+      levelIndex = 0;
+      level = LEVELS[levelIndex];
+      btnClose.textContent = "Start";
+      overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
+      overlay.querySelector("p").textContent =
+        "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
+      resetLevel();
+      return;
+    }
+
+    resetLevel();
+  });
+
+  // Start
+  updateUI();
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
