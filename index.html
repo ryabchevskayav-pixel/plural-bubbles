@@ -1,539 +1,477 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Plural Bubbles Editor</title>
-  <style>
-    :root{
-      --font:'Segoe UI',Roboto,system-ui,sans-serif;
-      --primary:#4f46e5;
-      --accent:#ec4899;
-      --good:#22c55e;
-      --bad:#ef4444;
-      --ui-bg:rgba(15,23,42,0.9);
-      --text:#f8fafc;
-    }
-    body{
-      margin:0; overflow:hidden;
-      font-family:var(--font);
-      background:#0f172a; color:var(--text);
-      user-select:none;
-    }
-    /* Layers */
-    #bg-layer{ position:fixed; inset:0; z-index:-2; background-size:cover; background-position:center; transition:background 0.5s; }
-    #particles-layer{ position:fixed; inset:0; z-index:-1; pointer-events:none; }
-    #game-ui{ position:fixed; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:16px; }
-    
-    /* Elements */
-    .hud-top{ display:flex; justify-content:space-between; align-items:flex-start; pointer-events:auto; }
-    .score-box{
-      background:var(--ui-bg); padding:8px 16px; border-radius:12px;
-      border:2px solid rgba(255,255,255,0.1);
-      display:flex; flex-direction:column; gap:4px;
-    }
-    .score-val{ font-size:28px; font-weight:800; color:var(--good); }
-    .hearts{ font-size:24px; letter-spacing:4px; color:var(--bad); }
-    
-    .btn{
-      background:linear-gradient(180deg, #6366f1, #4f46e5);
-      border:none; border-radius:12px; color:#fff;
-      padding:10px 20px; font-weight:bold; cursor:pointer;
-      box-shadow:0 4px 0 #3730a3; transition:transform 0.1s;
-      pointer-events:auto;
-    }
-    .btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #3730a3; }
-    .btn-icon{ padding:10px; font-size:20px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plural Bubbles Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Fredoka+One&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg1: #0b1020;
+            --bg2: #111a33;
+            --card: rgba(15, 23, 48, 0.85);
+            --text: #eef2ff;
+            --good: #34d399;
+            --bad: #fb7185;
+            --blue: #60a5fa;
+            --shadow: 0 18px 50px rgba(0,0,0,.35);
+        }
 
-    /* Editor Modal */
-    .modal-overlay{
-      position:fixed; inset:0; background:rgba(0,0,0,0.6);
-      backdrop-filter:blur(4px); z-index:100;
-      display:none; align-items:center; justify-content:center;
-    }
-    .modal-overlay.open{ display:flex; }
-    .modal{
-      background:#1e293b; width:min(500px, 90vw); max-height:90vh;
-      border-radius:20px; border:1px solid rgba(255,255,255,0.1);
-      box-shadow:0 20px 50px rgba(0,0,0,0.5);
-      display:flex; flex-direction:column; overflow:hidden;
-    }
-    .modal-header{ padding:20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; }
-    .modal-body{ padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
-    
-    .setting-group{ display:flex; flex-direction:column; gap:8px; }
-    .setting-label{ font-size:14px; color:#94a3b8; font-weight:600; text-transform:uppercase; }
-    
-    /* Background Grid */
-    .bg-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    .bg-option{
-      aspect-ratio:16/9; border-radius:8px; border:2px solid transparent;
-      background-size:cover; background-color:#334155; cursor:pointer;
-      position:relative; overflow:hidden;
-    }
-    .bg-option.active{ border-color:var(--good); box-shadow:0 0 0 2px var(--good); }
-    .bg-option input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
-    .bg-label{ position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); font-size:10px; padding:4px; text-align:center; }
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: radial-gradient(1200px 700px at 30% 20%, #20306a 0%, transparent 55%),
+                        linear-gradient(180deg, var(--bg1), var(--bg2));
+            color: var(--text);
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto; 
+        }
 
-    /* Toggles */
-    .toggle-row{ display:flex; justify-content:space-between; align-items:center; background:#334155; padding:12px; border-radius:10px; }
-    .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0f172a; transition: .4s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--accent); }
-    input:checked + .slider:before { transform: translateX(24px); }
+        .glass {
+            background: var(--card);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
 
-    /* Start Screen */
-    #start-screen{
-      position:fixed; inset:0; z-index:50;
-      background:rgba(15,23,42,0.95);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      text-align:center; padding:20px;
-    }
-    .instruct-card{
-      background:#fff; color:#0f172a;
-      padding:30px; border-radius:20px; max-width:600px;
-      box-shadow:0 20px 60px rgba(0,0,0,0.5);
-      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    @keyframes popIn{ from{transform:scale(0.8);opacity:0;} to{transform:scale(1);opacity:1;} }
-    
-    /* Bubbles */
-    .bubble{
-      position:absolute; width:100px; height:100px;
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:transform 0.1s;
-      filter:drop-shadow(0 10px 20px rgba(0,0,0,0.3));
-    }
-    .bubble:active{ transform:scale(0.95); }
-    .bubble-bg{
-      position:absolute; inset:0; border-radius:50%;
-      background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), rgba(255,255,255,0.05) 60%, rgba(255,255,255,0) 80%);
-      border:2px solid rgba(255,255,255,0.3);
-      box-shadow:inset 0 0 20px rgba(255,255,255,0.1);
-    }
-    .bubble img{ width:70%; height:70%; object-fit:contain; z-index:2; pointer-events:none; }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .pulse { animation: pulse 2s infinite; }
 
-    /* Effects */
-    .particle{ position:absolute; pointer-events:none; opacity:0.6; }
-    .pop-effect{ position:absolute; pointer-events:none; animation:explode 0.4s forwards; }
-    @keyframes explode{ 0%{transform:scale(1);opacity:1;} 100%{transform:scale(2);opacity:0;} }
-  </style>
+        .bubble {
+            position: absolute;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        .bubble img { width: 80%; height: 80%; object-fit: contain; }
+
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--bad); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .crosshair { cursor: crosshair !important; }
+        
+        .progress-container { width: 100%; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--good), var(--blue)); transition: width 0.3s ease; }
+
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 12px; background: var(--good);
+            color: black; font-weight: bold; z-index: 2000; animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { bottom: -50px; opacity: 0; } to { bottom: 20px; opacity: 1; } }
+
+        #editor-screen {
+            min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+    </style>
 </head>
 <body>
 
-<!-- Layers -->
-<div id="bg-layer" style="background-image: linear-gradient(to bottom, #0f172a, #1e293b);"></div>
-<div id="particles-layer"></div>
+    <!-- EDITOR SCREEN -->
+    <div id="editor-screen" class="w-full flex flex-col items-center justify-center">
+        <div class="glass p-6 md:p-8 max-w-5xl w-[95%] grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-6">
+                <h1 class="text-3xl font-bold text-blue-400">Настройки Мира</h1>
+                
+                <div class="space-y-4">
+                    <label class="block text-sm opacity-60">Локация и Атмосфера:</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="setTheme('underwater')" class="p-4 bg-white/5 rounded-2xl hover:bg-white/10 border border-white/5 transition flex flex-col items-center gap-2">
+                            <span class="text-2xl">🌊</span> <span class="text-xs">Океан</span>
+                        </button>
+                        <button onclick="setTheme('space')" class="p-4 bg-white/5 rounded-2xl hover:bg-white/10 border border-white/5 transition flex flex-col items-center gap-2">
+                            <span class="text-2xl">🌌</span> <span class="text-xs">Космос</span>
+                        </button>
+                        <button onclick="setTheme('forest')" class="p-4 bg-white/5 rounded-2xl hover:bg-white/10 border border-white/5 transition flex flex-col items-center gap-2">
+                            <span class="text-2xl">🌲</span> <span class="text-xs">Лес</span>
+                        </button>
+                        <button onclick="setTheme('cats')" class="p-4 bg-white/5 rounded-2xl hover:bg-white/10 border border-white/5 transition flex flex-col items-center gap-2">
+                            <span class="text-2xl">🐱</span> <span class="text-xs">Котики</span>
+                        </button>
+                    </div>
+                </div>
 
-<div id="game-ui">
-  <div class="hud-top">
-    <div class="score-box">
-      <div class="score-val" id="ui-score">0</div>
-      <div class="hearts" id="ui-hearts">❤❤❤</div>
-    </div>
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-icon" onclick="toggleEditor()">⚙</button>
-      <button class="btn btn-icon" id="btn-sound">🔊</button>
-    </div>
-  </div>
-  <div class="hud-center" id="subtitle-box" style="text-align:center; padding-bottom:40px;">
-    <div style="font-size:24px; font-weight:bold; text-shadow:0 2px 10px #000;" id="ui-target">...</div>
-  </div>
-</div>
+                <div class="flex items-center justify-between p-5 bg-black/20 rounded-2xl border border-white/5">
+                    <div>
+                        <span id="mode-label" class="block font-bold">Режим: Тапание 🫧</span>
+                        <span id="audio-desc" class="text-[10px] opacity-50 uppercase tracking-widest">Мягкая озвучка</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="mode-toggle" onchange="updateMode()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
 
-<div id="field"></div>
+                <div class="space-y-2">
+                    <label class="block text-sm opacity-60">Свой предмет (URL картинки):</label>
+                    <input type="text" id="custom-img" placeholder="https://example.com/item.png" 
+                           class="w-full bg-black/40 border border-white/10 p-4 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                </div>
+            </div>
 
-<!-- Start Screen -->
-<div id="start-screen">
-  <div class="instruct-card">
-    <h1 style="margin:0 0 10px; color:#4f46e5;">Plural Bubbles</h1>
-    <p style="font-size:18px; line-height:1.5;">
-      Привет! 👋 <br>
-      В этой игре нужно ловить правильные пузыри.<br>
-      1. Слушай слово или фразу.<br>
-      2. Находи нужную картинку.<br>
-      3. ЛОПАЙ пузырь! 💥
-    </p>
-    <div style="margin:20px 0; background:#f1f5f9; padding:15px; border-radius:10px;">
-      🎯 Цель: Собрать 10 правильных ответов.<br>
-      ❤ Жизни: У тебя 3 попытки.
-    </div>
-    <button class="btn" style="font-size:20px; padding:12px 30px;" onclick="startGame()">START GAME ▶</button>
-  </div>
-</div>
-
-<!-- Editor Modal -->
-<div class="modal-overlay" id="editor-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 style="margin:0;">Настройки Игры</h3>
-      <button class="btn btn-icon" style="padding:5px 10px; font-size:16px;" onclick="toggleEditor()">✕</button>
-    </div>
-    <div class="modal-body">
-      
-      <!-- Backgrounds -->
-      <div class="setting-group">
-        <div class="setting-label">Фон</div>
-        <div class="bg-grid">
-          <div class="bg-option" onclick="setBg('underwater')" style="background-image:url('assets/bg_underwater.jpg')"><span class="bg-label">Вода</span></div>
-          <div class="bg-option" onclick="setBg('forest')" style="background-image:url('assets/bg_forest.jpg')"><span class="bg-label">Лес</span></div>
-          <div class="bg-option" onclick="setBg('space')" style="background-image:url('assets/bg_space.jpg')"><span class="bg-label">Космос</span></div>
-          <div class="bg-option" onclick="setBg('sunset')" style="background-image:url('assets/bg_sunset.jpg')"><span class="bg-label">Вечер</span></div>
-          <div class="bg-option" onclick="setBg('park')" style="background-image:url('assets/bg_park.jpg')"><span class="bg-label">Парк</span></div>
-          <div class="bg-option" style="border:2px dashed #64748b; display:flex; align-items:center; justify-content:center;">
-            <span style="font-size:24px; color:#64748b;">+</span>
-            <input type="file" accept="image/*" onchange="uploadBg(this)">
-            <span class="bg-label">Свой</span>
-          </div>
+            <div class="flex flex-col gap-6">
+                <div id="preview-box" class="w-full aspect-video rounded-3xl bg-cover bg-center border-2 border-white/10 relative flex items-center justify-center overflow-hidden shadow-2xl">
+                    <div id="instruction-modal" class="glass p-6 text-center m-4 z-20 transition-all duration-500 shadow-2xl">
+                        <div class="text-5xl mb-3">🎮</div>
+                        <h2 class="text-2xl font-bold mb-3">Как играть?</h2>
+                        <p class="text-sm opacity-90 mb-6 leading-relaxed">Слушай слово и нажимай на правильный летающий предмет. Пройди все 4 уровня!</p>
+                        <button onclick="dismissInstruction()" class="w-full bg-blue-500 hover:bg-blue-600 py-3 rounded-xl font-bold text-lg transition-all active:scale-95 shadow-lg">ПОНЯТНО!</button>
+                    </div>
+                    <span class="absolute top-4 right-4 bg-black/60 text-[10px] px-3 py-1 rounded-full border border-white/10">ПРЕВЬЮ</span>
+                </div>
+                
+                <button id="start-btn" onclick="startGame()" disabled class="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-2xl shadow-xl opacity-40 cursor-not-allowed transition-all hover:brightness-110">
+                    НАЧАТЬ ИГРУ 🚀
+                </button>
+            </div>
         </div>
-      </div>
-
-      <!-- Mode -->
-      <div class="setting-group">
-        <div class="setting-label">Режим игры</div>
-        <div class="toggle-row">
-          <div>
-            <div style="font-weight:bold;">Shooter Mode 🔫</div>
-            <div style="font-size:12px; color:#94a3b8;">Агрессивный звук и взрывы</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="mode-switch" onchange="updateSettings()">
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-      
-      <!-- Particles -->
-      <div class="setting-group">
-        <div class="setting-label">Летающие частицы</div>
-        <div class="toggle-row">
-          <div>
-            <div style="font-weight:bold;">Загрузить своё</div>
-            <div style="font-size:12px; color:#94a3b8;">PNG объект (снежинка, лист)</div>
-          </div>
-          <input type="file" accept="image/*" onchange="uploadParticle(this)" style="width:100px; font-size:12px;">
-        </div>
-      </div>
-
     </div>
-  </div>
-</div>
 
-<script>
-// ================= DATA =================
-const ASSET = p => `assets/${p}`;
-const DATA = [
-  { key:"goose", s:"goose", p:"geese", i1:ASSET("goose_1.png"), i3:ASSET("geese_3.png") },
-  { key:"sheep", s:"sheep", p:"sheep", i1:ASSET("sheep_1.png"), i3:ASSET("sheep_3.png") },
-  { key:"deer",  s:"deer",  p:"deer",  i1:ASSET("deer_1.png"),  i3:ASSET("deer_3.png") },
-  { key:"fish",  s:"fish",  p:"fish",  i1:ASSET("fish_1.png"),  i3:ASSET("fish_3.png") },
-  { key:"mouse", s:"mouse", p:"mice",  i1:ASSET("mouse_1.png"), i3:ASSET("mice_3.png") },
-  { key:"man",   s:"man",   p:"men",   i1:ASSET("man_1.png"),   i3:ASSET("men_3.png") },
-  { key:"woman", s:"woman", p:"women", i1:ASSET("woman_1.png"), i3:ASSET("women_3.png") },
-];
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="fixed inset-0 hidden z-50">
+        <div id="game-bg" class="absolute inset-0 bg-cover bg-center"></div>
+        
+        <!-- Game UI -->
+        <div class="absolute top-0 left-0 right-0 p-4 md:p-8 flex justify-between items-start pointer-events-none z-[60]">
+            <div class="space-y-3 pointer-events-auto">
+                <button onclick="returnToEditor()" class="bg-white/10 hover:bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-sm font-bold border border-white/10 transition shadow-lg">↩ Редактор</button>
+                <div class="flex items-center space-x-4 glass px-6 py-4">
+                    <div>
+                        <div class="text-[10px] opacity-60 uppercase font-bold tracking-widest">Уровень <span id="level-num">1</span></div>
+                        <div class="text-lg font-bold" id="level-name">Обучающий</div>
+                    </div>
+                    <div class="h-10 w-[1px] bg-white/10"></div>
+                    <div class="text-3xl font-bold text-blue-400" id="game-score">0</div>
+                </div>
+            </div>
 
-// ================= STATE =================
-let state = {
-  score: 0,
-  hearts: 3,
-  isPlaying: false,
-  mode: 'tap', // 'tap' or 'shooter'
-  bg: 'underwater',
-  particleImg: null, // null = auto
-  bubbles: [],
-  target: null
-};
+            <div class="w-48 md:w-72 glass p-4 pointer-events-auto">
+                <div class="flex justify-between text-[10px] font-bold uppercase mb-2 opacity-70">
+                    <span>Прогресс уровня</span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
 
-// ================= AUDIO =================
-// Simple synth for effects (no external files needed for logic)
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let actx = new AudioCtx();
+        <!-- Target Word Display -->
+        <div id="target-display" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center z-50">
+            <h2 id="target-word" class="text-7xl md:text-9xl font-black drop-shadow-2xl tracking-tighter">...</h2>
+            <div id="target-hint" class="inline-block mt-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-8 py-2 text-lg font-bold shadow-xl">Слушай внимательно! 🎧</div>
+        </div>
 
-function playSound(type){
-  if(actx.state === 'suspended') actx.resume();
-  const osc = actx.createOscillator();
-  const gain = actx.createGain();
-  osc.connect(gain);
-  gain.connect(actx.destination);
-  
-  const now = actx.currentTime;
-  
-  if(type === 'pop-soft'){ // Bubbles tap
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.exponentialRampToValueAtTime(600, now+0.1);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now+0.1);
-    osc.start(now); osc.stop(now+0.15);
-  }
-  else if(type === 'pop-hard'){ // Shooter explosion
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(100, now);
-    osc.frequency.exponentialRampToValueAtTime(50, now+0.2);
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now+0.2);
-    osc.start(now); osc.stop(now+0.25);
-  }
-  else if(type === 'win'){
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.linearRampToValueAtTime(800, now+0.3);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.linearRampToValueAtTime(0, now+0.5);
-    osc.start(now); osc.stop(now+0.5);
-  }
-  else if(type === 'lose'){
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.linearRampToValueAtTime(100, now+0.3);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.linearRampToValueAtTime(0, now+0.4);
-    osc.start(now); osc.stop(now+0.4);
-  }
-}
+        <div id="bubbles-container" class="absolute inset-0 z-40"></div>
+    </div>
 
-function speak(text){
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US'; u.rate = 0.9;
-  window.speechSynthesis.speak(u);
-}
+    <script>
+        const themes = {
+            underwater: { bg: 'url(https://images.unsplash.com/photo-1551244072-5d12893278ab?auto=format&fit=crop&w=1200)', items: ['🫧', '🐳', '🐠'] },
+            space: { bg: 'url(https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1200)', items: ['🍩', '🚀', '👽'] },
+            forest: { bg: 'url(https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200)', items: ['🍄', '🌲', '🥖'] },
+            cats: { bg: 'url(https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200)', items: ['🐱', '🍔', '🐾'] }
+        };
 
-// ================= GAME LOGIC =================
-function startGame(){
-  document.getElementById('start-screen').style.display = 'none';
-  state.isPlaying = true;
-  state.score = 0;
-  state.hearts = 3;
-  updateHud();
-  startRound();
-  initParticles();
-}
+        const levels = [
+            { id: 1, name: "Обучающий 🟢", goal: 5, speed: 0.8, bubbles: 3 },
+            { id: 2, name: "Стандарт 🔵", goal: 8, speed: 1.4, bubbles: 5 },
+            { id: 3, name: "Продвинутый 🟣", goal: 10, speed: 2.2, bubbles: 6 },
+            { id: 4, name: "Мастер 🔴", goal: 12, speed: 3.2, bubbles: 8 }
+        ];
 
-function startRound(){
-  // Clear old
-  document.getElementById('field').innerHTML = '';
-  state.bubbles = [];
-  
-  // Pick target
-  const item = DATA[Math.floor(Math.random()*DATA.length)];
-  const form = Math.random() > 0.5 ? 'p' : 's';
-  const word = form==='p' ? item.p : item.s;
-  const targetImg = form==='p' ? item.i3 : item.i1;
-  const phrase = `Find: ${word}`;
-  
-  state.target = { word, img: targetImg };
-  
-  // UI
-  document.getElementById('ui-target').innerText = phrase;
-  document.getElementById('ui-target').style.animation = 'none';
-  void document.getElementById('ui-target').offsetWidth;
-  document.getElementById('ui-target').style.animation = 'popIn 0.5s';
-  speak(word); // Auto speak
-  
-  // Spawn Bubbles (1 Correct + 5 Distractors)
-  let pool = [];
-  pool.push({ img:targetImg, correct:true });
-  
-  for(let i=0; i<5; i++){
-    const rndItem = DATA[Math.floor(Math.random()*DATA.length)];
-    const rndForm = Math.random() > 0.5 ? 'p' : 's';
-    const img = rndForm==='p' ? rndItem.i3 : rndItem.i1;
-    // Simple check to avoid duplicate correct image
-    if(img !== targetImg) pool.push({ img:img, correct:false });
-    else i--; // retry
-  }
-  pool.sort(()=>Math.random()-0.5);
-  
-  pool.forEach(p => createBubble(p));
-}
+        const words = [
+            { sing: "Goose", plur: "Geese" },
+            { sing: "Mouse", plur: "Mice" },
+            { sing: "Sheep", plur: "Sheep" },
+            { sing: "Deer", plur: "Deer" },
+            { sing: "Fish", plur: "Fish" },
+            { sing: "Man", plur: "Men" },
+            { sing: "Woman", plur: "Women" }
+        ];
 
-function createBubble(data){
-  const el = document.createElement('div');
-  el.className = 'bubble';
-  el.innerHTML = `<div class="bubble-bg"></div><img src="${data.img}">`;
-  
-  // Random Position & Speed
-  let x = Math.random() * (window.innerWidth - 100);
-  let y = Math.random() * (window.innerHeight - 200) + 100;
-  let vx = (Math.random()-0.5) * 2;
-  let vy = (Math.random()-0.5) * 2;
-  
-  el.style.left = x+'px';
-  el.style.top = y+'px';
-  
-  el.onpointerdown = (e) => {
-    e.stopPropagation();
-    hitBubble(el, data.correct);
-  };
-  
-  document.getElementById('field').appendChild(el);
-  state.bubbles.push({ el, x, y, vx, vy });
-}
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-function hitBubble(el, isCorrect){
-  if(isCorrect){
-    // Win logic
-    playSound(state.mode === 'shooter' ? 'pop-hard' : 'pop-soft');
-    createExplosion(el.offsetLeft+50, el.offsetTop+50, true);
-    state.score++;
-    updateHud();
-    el.remove();
-    setTimeout(startRound, 500);
-  } else {
-    // Lose logic
-    playSound('lose');
-    state.hearts--;
-    updateHud();
-    el.style.filter = 'grayscale(1) brightness(0.5)';
-    createExplosion(el.offsetLeft+50, el.offsetTop+50, false);
-    
-    if(state.hearts <= 0) gameOver();
-  }
-}
+        let config = { theme: 'underwater', mode: 'tap', customImg: '' };
+        let gameState = { level: 0, score: 0, active: false, bubbles: [], target: null };
 
-function createExplosion(x, y, success){
-  const div = document.createElement('div');
-  div.className = 'pop-effect';
-  div.style.left = (x-50)+'px';
-  div.style.top = (y-50)+'px';
-  div.style.width = '100px';
-  div.style.height = '100px';
-  div.style.background = success 
-    ? (state.mode === 'shooter' ? 'radial-gradient(circle, #fbbf24, transparent)' : 'radial-gradient(circle, #a5f3fc, transparent)')
-    : 'radial-gradient(circle, #ef4444, transparent)';
-  div.style.borderRadius = '50%';
-  document.body.appendChild(div);
-  setTimeout(()=>div.remove(), 500);
-}
+        // SOUND GENERATOR
+        function playSfx(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
 
-function gameOver(){
-  state.isPlaying = false;
-  document.querySelector('.instruct-card h1').innerText = "Game Over!";
-  document.querySelector('.instruct-card p').innerText = `Твой счет: ${state.score}`;
-  document.getElementById('start-screen').style.display = 'flex';
-}
+            if (type === 'tap') {
+                // Bubble pop sound
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'shoot') {
+                // Pistol shot sound
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+                
+                // Add noise for the "crack"
+                const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < noiseBuffer.length; i++) output[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = noiseBuffer;
+                const noiseGain = audioCtx.createGain();
+                noiseGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                noise.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+                noise.start();
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
 
-function updateHud(){
-  document.getElementById('ui-score').innerText = state.score;
-  document.getElementById('ui-hearts').innerText = '❤'.repeat(state.hearts);
-}
+        function setTheme(t) {
+            config.theme = t;
+            document.getElementById('preview-box').style.backgroundImage = themes[t].bg;
+        }
 
-// ================= LOOP & PARTICLES =================
-function loop(){
-  if(!state.isPlaying) { requestAnimationFrame(loop); return; }
-  
-  state.bubbles.forEach(b => {
-    b.x += b.vx;
-    b.y += b.vy;
-    
-    // Bounce
-    if(b.x < 0 || b.x > window.innerWidth-100) b.vx *= -1;
-    if(b.y < 50 || b.y > window.innerHeight-100) b.vy *= -1;
-    
-    b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
-  });
-  
-  requestAnimationFrame(loop);
-}
-loop();
+        function updateMode() {
+            const isShoot = document.getElementById('mode-toggle').checked;
+            config.mode = isShoot ? 'shoot' : 'tap';
+            document.getElementById('mode-label').innerText = isShoot ? "Режим: Шутер 🔫" : "Режим: Тапание 🫧";
+            document.getElementById('audio-desc').innerText = isShoot ? "Озвучка выстрел" : "Мягкая озвучка";
+        }
 
-function initParticles(){
-  const layer = document.getElementById('particles-layer');
-  layer.innerHTML = '';
-  // Determine particle type based on bg
-  let type = 'circle';
-  let color = 'rgba(255,255,255,0.2)';
-  
-  if(state.bg === 'underwater') type = 'bubble';
-  if(state.bg === 'forest') { type = 'firefly'; color='#fef08a'; }
-  if(state.bg === 'space') { type = 'star'; }
-  
-  for(let i=0; i<20; i++){
-    const p = document.createElement('div');
-    p.className = 'particle';
-    let size = Math.random()*10 + 5;
-    
-    p.style.width = size+'px';
-    p.style.height = size+'px';
-    p.style.left = Math.random()*100 + 'vw';
-    p.style.top = Math.random()*100 + 'vh';
-    
-    if(state.particleImg){
-      p.style.backgroundImage = `url(${state.particleImg})`;
-      p.style.backgroundSize = 'contain';
-    } else {
-      p.style.background = color;
-      p.style.borderRadius = '50%';
-      if(type === 'star') p.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
-    }
-    
-    // CSS Animation for movement
-    let dur = Math.random()*10 + 5;
-    p.style.transition = `top ${dur}s linear, opacity 2s`;
-    
-    layer.appendChild(p);
-    
-    // Simple reset loop for CSS
-    setInterval(()=>{
-      p.style.top = '-10px';
-      setTimeout(()=>{ 
-        p.style.transition = 'none'; 
-        p.style.top = '110vh'; 
-        setTimeout(()=>{ p.style.transition = `top ${dur}s linear`; },100);
-      }, dur*1000);
-    }, Math.random()*5000);
-  }
-}
+        function dismissInstruction() {
+            audioCtx.resume(); // Unlock audio on interaction
+            document.getElementById('instruction-modal').style.transform = 'scale(0)';
+            document.getElementById('instruction-modal').style.opacity = '0';
+            setTimeout(() => document.getElementById('instruction-modal').style.display = 'none', 500);
+            
+            const btn = document.getElementById('start-btn');
+            btn.disabled = false;
+            btn.classList.add('pulse');
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
 
-// ================= EDITOR FUNCTIONS =================
-function toggleEditor(){
-  const el = document.getElementById('editor-modal');
-  el.classList.toggle('open');
-}
+        function startGame() {
+            document.getElementById('editor-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('game-bg').style.backgroundImage = themes[config.theme].bg;
+            if (config.mode === 'shoot') document.body.classList.add('crosshair');
+            
+            gameState.level = 0;
+            gameState.score = 0;
+            gameState.active = true;
+            nextRound();
+            gameLoop();
+        }
 
-function setBg(name){
-  state.bg = name;
-  const bgEl = document.getElementById('bg-layer');
-  if(name==='underwater') bgEl.style.backgroundImage = `url('assets/bg_underwater.jpg')`;
-  if(name==='forest') bgEl.style.backgroundImage = `url('assets/bg_forest.jpg')`;
-  if(name==='space') bgEl.style.backgroundImage = `url('assets/bg_space.jpg')`;
-  if(name==='sunset') bgEl.style.backgroundImage = `url('assets/bg_sunset.jpg')`;
-  if(name==='park') bgEl.style.backgroundImage = `url('assets/bg_park.jpg')`;
-  
-  initParticles(); // refresh particles
-}
+        function returnToEditor() {
+            gameState.active = false;
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('editor-screen').classList.remove('hidden');
+            document.body.classList.remove('crosshair');
+            clearBubbles();
+        }
 
-function uploadBg(input){
-  if(input.files && input.files[0]){
-    const reader = new FileReader();
-    reader.onload = function(e){
-      document.getElementById('bg-layer').style.backgroundImage = `url(${e.target.result})`;
-    }
-    reader.readAsDataURL(input.files[0]);
-  }
-}
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const ut = new SpeechSynthesisUtterance(text);
+            ut.lang = 'en-US';
+            ut.rate = 0.85;
+            window.speechSynthesis.speak(ut);
+        }
 
-function uploadParticle(input){
-  if(input.files && input.files[0]){
-    const reader = new FileReader();
-    reader.onload = function(e){
-      state.particleImg = e.target.result;
-      initParticles();
-    }
-    reader.readAsDataURL(input.files[0]);
-  }
-}
+        function nextRound() {
+            clearBubbles();
+            const currentLevel = levels[gameState.level];
+            document.getElementById('level-num').innerText = currentLevel.id;
+            document.getElementById('level-name').innerText = currentLevel.name;
 
-function updateSettings(){
-  const isShooter = document.getElementById('mode-switch').checked;
-  state.mode = isShooter ? 'shooter' : 'tap';
-}
+            const wordPair = words[Math.floor(Math.random() * words.length)];
+            const isPlural = Math.random() > 0.5;
+            gameState.target = isPlural ? wordPair.plur : wordPair.sing;
+            
+            document.getElementById('target-word').innerText = gameState.target;
+            speak(gameState.target);
 
-document.getElementById('btn-sound').onclick = () => { speak(state.target.word); }
+            for(let i = 0; i < currentLevel.bubbles; i++) {
+                createBubble(i === 0);
+            }
+        }
 
-</script>
+        function createBubble(isCorrect) {
+            const currentLevel = levels[gameState.level];
+            const size = 110 + Math.random() * 50;
+            const el = document.createElement('div');
+            el.className = 'bubble';
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+
+            const content = document.createElement('div');
+            if (config.customImg) {
+                const img = document.createElement('img');
+                img.src = config.customImg;
+                content.appendChild(img);
+            } else {
+                const items = themes[config.theme].items;
+                content.innerText = items[Math.floor(Math.random() * items.length)];
+                content.style.fontSize = (size * 0.5) + 'px';
+            }
+            
+            if (isCorrect) {
+                const label = document.createElement('span');
+                label.innerText = gameState.target;
+                label.className = 'absolute -bottom-4 bg-blue-600 px-3 py-1 rounded-full text-[10px] font-bold shadow-lg';
+                el.appendChild(label);
+            }
+
+            el.appendChild(content);
+            document.getElementById('bubbles-container').appendChild(el);
+
+            const bubble = {
+                el: el,
+                x: Math.random() * (window.innerWidth - size),
+                y: Math.random() * (window.innerHeight - size),
+                vx: (Math.random() - 0.5) * currentLevel.speed * 6,
+                vy: (Math.random() - 0.5) * currentLevel.speed * 6,
+                size: size,
+                isCorrect: isCorrect
+            };
+
+            el.onclick = (e) => {
+                e.stopPropagation();
+                handlePop(bubble);
+            };
+            gameState.bubbles.push(bubble);
+        }
+
+        function handlePop(b) {
+            if (b.isCorrect) {
+                playSfx(config.mode); // Play bubble or shoot sound
+                gameState.score++;
+                showToast("В ТОЧКУ! 🎯");
+                
+                b.el.style.transform = 'scale(1.8)';
+                b.el.style.opacity = '0';
+                
+                updateProgress();
+                
+                setTimeout(() => {
+                    if (gameState.score >= levels[gameState.level].goal) {
+                        nextLevel();
+                    } else {
+                        nextRound();
+                    }
+                }, 300);
+            } else {
+                playSfx('error');
+                showToast("МИМО! 🤪", true);
+                b.el.style.boxShadow = '0 0 30px rgba(251, 113, 133, 0.5)';
+                setTimeout(() => b.el.style.boxShadow = 'none', 300);
+            }
+        }
+
+        function updateProgress() {
+            const currentLevel = levels[gameState.level];
+            const percent = (gameState.score / currentLevel.goal) * 100;
+            document.getElementById('game-score').innerText = gameState.score;
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-percent').innerText = Math.round(percent) + '%';
+        }
+
+        function nextLevel() {
+            if (gameState.level < levels.length - 1) {
+                gameState.level++;
+                gameState.score = 0;
+                showToast("НОВЫЙ УРОВЕНЬ! 🚀");
+                updateProgress();
+                nextRound();
+            } else {
+                showToast("ТЫ ЧЕМПИОН! 🏆");
+                setTimeout(returnToEditor, 2000);
+            }
+        }
+
+        function clearBubbles() {
+            document.getElementById('bubbles-container').innerHTML = '';
+            gameState.bubbles = [];
+        }
+
+        function showToast(text, isError = false) {
+            const t = document.createElement('div');
+            t.className = 'toast shadow-2xl';
+            if (isError) t.style.background = 'var(--bad)';
+            t.innerText = text;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2000);
+        }
+
+        function gameLoop() {
+            if (!gameState.active) return;
+
+            gameState.bubbles.forEach(b => {
+                b.x += b.vx;
+                b.y += b.vy;
+
+                if (b.x <= 0) { b.x = 0; b.vx *= -1; }
+                if (b.x >= window.innerWidth - b.size) { b.x = window.innerWidth - b.size; b.vx *= -1; }
+                if (b.y <= 0) { b.y = 0; b.vy *= -1; }
+                if (b.y >= window.innerHeight - b.size) { b.y = window.innerHeight - b.size; b.vy *= -1; }
+
+                b.el.style.left = b.x + 'px';
+                b.el.style.top = b.y + 'px';
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.getElementById('custom-img').oninput = (e) => {
+            config.customImg = e.target.value;
+        };
+
+        setTheme('underwater');
+    </script>
 </body>
 </html>
