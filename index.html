@@ -3,633 +3,537 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Plural Bubbles</title>
+  <title>Plural Bubbles Editor</title>
   <style>
     :root{
-      --bg1:#0b1020;
-      --bg2:#111a33;
-      --card:#0f1730cc;
-      --text:#eef2ff;
-      --muted:#b8c0ff;
-      --good:#34d399;
-      --bad:#fb7185;
-      --blue:#60a5fa;
-      --purple:#a78bfa;
-      --red:#fb7185;
-      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --font:'Segoe UI',Roboto,system-ui,sans-serif;
+      --primary:#4f46e5;
+      --accent:#ec4899;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --ui-bg:rgba(15,23,42,0.9);
+      --text:#f8fafc;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
     body{
-      background: radial-gradient(1200px 700px at 30% 20%, #20306a 0%, transparent 55%),
-                  radial-gradient(900px 600px at 80% 30%, #5b2a6f55 0%, transparent 60%),
-                  linear-gradient(180deg,var(--bg1),var(--bg2));
-      color:var(--text);
-      overflow:hidden;
-    }
-
-    /* Layout */
-    .ui{
-      position:fixed; inset:16px 16px auto 16px;
-      display:flex; gap:12px; align-items:stretch; justify-content:space-between;
-      pointer-events:none;
-    }
-    .panel{
-      pointer-events:auto;
-      background:var(--card);
-      backdrop-filter: blur(8px);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:12px 14px;
-      box-shadow:var(--shadow);
-      min-width: 280px;
-    }
-    .panel.small{min-width:220px}
-    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .title{font-weight:700;letter-spacing:.2px}
-    .muted{color:var(--muted);font-size:13px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .chip{
-      font-size:12px; padding:6px 10px; border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06);
-    }
-    .chip.green{outline:2px solid color-mix(in oklab, var(--good) 70%, transparent)}
-    .chip.blue{outline:2px solid color-mix(in oklab, var(--blue) 70%, transparent)}
-    .chip.purple{outline:2px solid color-mix(in oklab, var(--purple) 70%, transparent)}
-    .chip.red{outline:2px solid color-mix(in oklab, var(--red) 70%, transparent)}
-
-    .progressWrap{margin-top:10px}
-    .progressBar{
-      height:10px;border-radius:999px;background:rgba(255,255,255,.10);
-      overflow:hidden;border:1px solid rgba(255,255,255,.12);
-    }
-    .progressFill{
-      height:100%; width:0%;
-      background: linear-gradient(90deg, var(--good), #22c55e);
-      border-radius:999px;
-      transition: width .25s ease;
-    }
-
-    .btn{
-      pointer-events:auto;
-      border:0;
-      background: linear-gradient(180deg,#ffffff22,#ffffff10);
-      color:var(--text);
-      border:1px solid rgba(255,255,255,.18);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:700;
-    }
-    .btn:active{transform:translateY(1px)}
-    .btn.primary{
-      background: linear-gradient(180deg,#34d399,#22c55e);
-      color:#0b1020;
-      border:0;
-    }
-
-    /* Game field */
-    #field{
-      position:fixed; inset:0;
-    }
-    .bubble{
-      position:absolute;
-      width:110px; height:110px;
-      display:flex; align-items:center; justify-content:center;
-      border-radius:999px;
-      background: radial-gradient(circle at 30% 30%, #ffffff3d, #ffffff12 55%, #ffffff08 100%);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow: 0 12px 30px rgba(0,0,0,.22);
+      margin:0; overflow:hidden;
+      font-family:var(--font);
+      background:#0f172a; color:var(--text);
       user-select:none;
-      cursor:pointer;
-      transition: transform .12s ease;
     }
-    .bubble:hover{transform:scale(1.03)}
-    .bubble img{
-      width:110px; height:110px;
-      object-fit:contain;
-      pointer-events:none;
-      filter: drop-shadow(0 10px 16px rgba(0,0,0,.18));
+    /* Layers */
+    #bg-layer{ position:fixed; inset:0; z-index:-2; background-size:cover; background-position:center; transition:background 0.5s; }
+    #particles-layer{ position:fixed; inset:0; z-index:-1; pointer-events:none; }
+    #game-ui{ position:fixed; inset:0; pointer-events:none; display:flex; flex-direction:column; justify-content:space-between; padding:16px; }
+    
+    /* Elements */
+    .hud-top{ display:flex; justify-content:space-between; align-items:flex-start; pointer-events:auto; }
+    .score-box{
+      background:var(--ui-bg); padding:8px 16px; border-radius:12px;
+      border:2px solid rgba(255,255,255,0.1);
+      display:flex; flex-direction:column; gap:4px;
     }
-    .pop{
-      animation: pop .35s ease forwards;
+    .score-val{ font-size:28px; font-weight:800; color:var(--good); }
+    .hearts{ font-size:24px; letter-spacing:4px; color:var(--bad); }
+    
+    .btn{
+      background:linear-gradient(180deg, #6366f1, #4f46e5);
+      border:none; border-radius:12px; color:#fff;
+      padding:10px 20px; font-weight:bold; cursor:pointer;
+      box-shadow:0 4px 0 #3730a3; transition:transform 0.1s;
+      pointer-events:auto;
     }
-    @keyframes pop{
-      0%{transform:scale(1)}
-      60%{transform:scale(1.18)}
-      100%{transform:scale(.2);opacity:0}
-    }
-    .wrong{
-      animation: shake .25s ease;
-      outline:2px solid color-mix(in oklab, var(--bad) 65%, transparent);
-    }
-    @keyframes shake{
-      0%,100%{transform:translateX(0)}
-      25%{transform:translateX(-6px)}
-      50%{transform:translateX(6px)}
-      75%{transform:translateX(-4px)}
-    }
+    .btn:active{ transform:translateY(2px); box-shadow:0 2px 0 #3730a3; }
+    .btn-icon{ padding:10px; font-size:20px; }
 
-    /* Center overlay */
-    .overlay{
-      position:fixed; inset:0;
+    /* Editor Modal */
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,0.6);
+      backdrop-filter:blur(4px); z-index:100;
+      display:none; align-items:center; justify-content:center;
+    }
+    .modal-overlay.open{ display:flex; }
+    .modal{
+      background:#1e293b; width:min(500px, 90vw); max-height:90vh;
+      border-radius:20px; border:1px solid rgba(255,255,255,0.1);
+      box-shadow:0 20px 50px rgba(0,0,0,0.5);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .modal-header{ padding:20px; border-bottom:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; }
+    .modal-body{ padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:20px; }
+    
+    .setting-group{ display:flex; flex-direction:column; gap:8px; }
+    .setting-label{ font-size:14px; color:#94a3b8; font-weight:600; text-transform:uppercase; }
+    
+    /* Background Grid */
+    .bg-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .bg-option{
+      aspect-ratio:16/9; border-radius:8px; border:2px solid transparent;
+      background-size:cover; background-color:#334155; cursor:pointer;
+      position:relative; overflow:hidden;
+    }
+    .bg-option.active{ border-color:var(--good); box-shadow:0 0 0 2px var(--good); }
+    .bg-option input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .bg-label{ position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.7); font-size:10px; padding:4px; text-align:center; }
+
+    /* Toggles */
+    .toggle-row{ display:flex; justify-content:space-between; align-items:center; background:#334155; padding:12px; border-radius:10px; }
+    .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0f172a; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent); }
+    input:checked + .slider:before { transform: translateX(24px); }
+
+    /* Start Screen */
+    #start-screen{
+      position:fixed; inset:0; z-index:50;
+      background:rgba(15,23,42,0.95);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:20px;
+    }
+    .instruct-card{
+      background:#fff; color:#0f172a;
+      padding:30px; border-radius:20px; max-width:600px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn{ from{transform:scale(0.8);opacity:0;} to{transform:scale(1);opacity:1;} }
+    
+    /* Bubbles */
+    .bubble{
+      position:absolute; width:100px; height:100px;
       display:flex; align-items:center; justify-content:center;
-      background: rgba(0,0,0,.45);
-      backdrop-filter: blur(6px);
+      cursor:pointer; transition:transform 0.1s;
+      filter:drop-shadow(0 10px 20px rgba(0,0,0,0.3));
     }
-    .card{
-      width:min(720px,92vw);
-      background: rgba(15,23,48,.92);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:20px;
-      box-shadow:var(--shadow);
-      padding:18px;
+    .bubble:active{ transform:scale(0.95); }
+    .bubble-bg{
+      position:absolute; inset:0; border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), rgba(255,255,255,0.05) 60%, rgba(255,255,255,0) 80%);
+      border:2px solid rgba(255,255,255,0.3);
+      box-shadow:inset 0 0 20px rgba(255,255,255,0.1);
     }
-    .card h1{margin:0 0 6px 0;font-size:18px}
-    .card p{margin:6px 0;color:var(--muted);line-height:1.35}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .kbd{
-      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-      font-size:12px;
-      padding:2px 8px;border-radius:10px;
-      background: rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.12);
-    }
-    @media (max-width:700px){
-      .ui{flex-direction:column;align-items:stretch}
-      .panel{min-width:auto}
-      .grid2{grid-template-columns:1fr}
-    }
+    .bubble img{ width:70%; height:70%; object-fit:contain; z-index:2; pointer-events:none; }
+
+    /* Effects */
+    .particle{ position:absolute; pointer-events:none; opacity:0.6; }
+    .pop-effect{ position:absolute; pointer-events:none; animation:explode 0.4s forwards; }
+    @keyframes explode{ 0%{transform:scale(1);opacity:1;} 100%{transform:scale(2);opacity:0;} }
   </style>
 </head>
 <body>
-  <div id="field" aria-label="game field"></div>
 
-  <div class="ui">
-    <div class="panel">
-      <div class="row">
-        <div>
-          <div class="title">Plural Bubbles</div>
-          <div class="muted" id="subtitle">Найди нужную форму</div>
-        </div>
-        <button class="btn primary" id="btnSpeak" title="Повторить озвучку">🔊</button>
-      </div>
+<!-- Layers -->
+<div id="bg-layer" style="background-image: linear-gradient(to bottom, #0f172a, #1e293b);"></div>
+<div id="particles-layer"></div>
 
-      <div class="chips" id="chips"></div>
-
-      <div class="progressWrap">
-        <div class="row">
-          <div class="muted">Прогресс: <span id="scoreText">0</span>/<span id="goalText">10</span></div>
-          <div class="muted">Время: <span id="timeText">—</span></div>
-        </div>
-        <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
-      </div>
+<div id="game-ui">
+  <div class="hud-top">
+    <div class="score-box">
+      <div class="score-val" id="ui-score">0</div>
+      <div class="hearts" id="ui-hearts">❤❤❤</div>
     </div>
-
-    <div class="panel small">
-      <div class="row">
-        <button class="btn" id="btnLevel">Уровень: 🟢</button>
-        <button class="btn" id="btnReset">Сброс</button>
-      </div>
-      <p class="muted" style="margin:10px 0 0 0">
-        Нажимай на стикеры в пузырях.<br/>
-        <span class="kbd">Space</span> — повтор озвучки
-      </p>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-icon" onclick="toggleEditor()">⚙</button>
+      <button class="btn btn-icon" id="btn-sound">🔊</button>
     </div>
   </div>
+  <div class="hud-center" id="subtitle-box" style="text-align:center; padding-bottom:40px;">
+    <div style="font-size:24px; font-weight:bold; text-shadow:0 2px 10px #000;" id="ui-target">...</div>
+  </div>
+</div>
 
-  <div class="overlay" id="overlay">
-    <div class="card">
-      <h1>Старт игры (звук + пузыри)</h1>
-      <p>
-        Нажми <b>Start</b>, чтобы включить озвучку и начать ловить правильные формы множественного числа.
-        (Браузер включает звук после первого клика — это нормально.)
-      </p>
-      <div class="grid2" style="margin-top:12px">
-        <div class="panel" style="margin:0">
-          <div class="title">Уровни</div>
-          <div class="muted">🟢 обучающий → 🔵 стандарт → 🟣 предложения → 🔴 челлендж</div>
-          <div class="chips" style="margin-top:10px">
-            <span class="chip green">🟢 2–3 вариантов</span>
-            <span class="chip blue">🔵 4–6 вариантов</span>
-            <span class="chip purple">🟣 фраза/предложение</span>
-            <span class="chip red">🔴 таймер + скорость</span>
+<div id="field"></div>
+
+<!-- Start Screen -->
+<div id="start-screen">
+  <div class="instruct-card">
+    <h1 style="margin:0 0 10px; color:#4f46e5;">Plural Bubbles</h1>
+    <p style="font-size:18px; line-height:1.5;">
+      Привет! 👋 <br>
+      В этой игре нужно ловить правильные пузыри.<br>
+      1. Слушай слово или фразу.<br>
+      2. Находи нужную картинку.<br>
+      3. ЛОПАЙ пузырь! 💥
+    </p>
+    <div style="margin:20px 0; background:#f1f5f9; padding:15px; border-radius:10px;">
+      🎯 Цель: Собрать 10 правильных ответов.<br>
+      ❤ Жизни: У тебя 3 попытки.
+    </div>
+    <button class="btn" style="font-size:20px; padding:12px 30px;" onclick="startGame()">START GAME ▶</button>
+  </div>
+</div>
+
+<!-- Editor Modal -->
+<div class="modal-overlay" id="editor-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 style="margin:0;">Настройки Игры</h3>
+      <button class="btn btn-icon" style="padding:5px 10px; font-size:16px;" onclick="toggleEditor()">✕</button>
+    </div>
+    <div class="modal-body">
+      
+      <!-- Backgrounds -->
+      <div class="setting-group">
+        <div class="setting-label">Фон</div>
+        <div class="bg-grid">
+          <div class="bg-option" onclick="setBg('underwater')" style="background-image:url('assets/bg_underwater.jpg')"><span class="bg-label">Вода</span></div>
+          <div class="bg-option" onclick="setBg('forest')" style="background-image:url('assets/bg_forest.jpg')"><span class="bg-label">Лес</span></div>
+          <div class="bg-option" onclick="setBg('space')" style="background-image:url('assets/bg_space.jpg')"><span class="bg-label">Космос</span></div>
+          <div class="bg-option" onclick="setBg('sunset')" style="background-image:url('assets/bg_sunset.jpg')"><span class="bg-label">Вечер</span></div>
+          <div class="bg-option" onclick="setBg('park')" style="background-image:url('assets/bg_park.jpg')"><span class="bg-label">Парк</span></div>
+          <div class="bg-option" style="border:2px dashed #64748b; display:flex; align-items:center; justify-content:center;">
+            <span style="font-size:24px; color:#64748b;">+</span>
+            <input type="file" accept="image/*" onchange="uploadBg(this)">
+            <span class="bg-label">Свой</span>
           </div>
         </div>
-        <div class="panel" style="margin:0">
-          <div class="title">Управление</div>
-          <p class="muted" style="margin:8px 0 0 0">
-            Нажимай по пузырям. Кнопка 🔊 повторяет задание. На 🔴 уровне важно успевать.
-          </p>
+      </div>
+
+      <!-- Mode -->
+      <div class="setting-group">
+        <div class="setting-label">Режим игры</div>
+        <div class="toggle-row">
+          <div>
+            <div style="font-weight:bold;">Shooter Mode 🔫</div>
+            <div style="font-size:12px; color:#94a3b8;">Агрессивный звук и взрывы</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="mode-switch" onchange="updateSettings()">
+            <span class="slider"></span>
+          </label>
         </div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
-        <button class="btn" id="btnClose">Start</button>
+      
+      <!-- Particles -->
+      <div class="setting-group">
+        <div class="setting-label">Летающие частицы</div>
+        <div class="toggle-row">
+          <div>
+            <div style="font-weight:bold;">Загрузить своё</div>
+            <div style="font-size:12px; color:#94a3b8;">PNG объект (снежинка, лист)</div>
+          </div>
+          <input type="file" accept="image/*" onchange="uploadParticle(this)" style="width:100px; font-size:12px;">
+        </div>
       </div>
+
     </div>
   </div>
+</div>
 
 <script>
-(() => {
-  // =========================
-  // CONFIG (правьте под себя)
-  // =========================
-  const ASSET = (p) => `assets/${p}`;
-
-  const DATA = [
-  { key:"goose",  singular:"goose",  plural:"geese",  img1:ASSET("goose_1.png"),  img3:ASSET("geese_3.png") },
-  { key:"sheep",  singular:"sheep",  plural:"sheep",  img1:ASSET("sheep_1.png"),  img3:ASSET("sheep_3.png") },
-  { key:"deer",   singular:"deer",   plural:"deer",   img1:ASSET("deer_1.png"),   img3:ASSET("deer_3.png") },
-  { key:"fish",   singular:"fish",   plural:"fish",   img1:ASSET("fish_1.png"),   img3:ASSET("fish_3.png") },
-  { key:"mouse",  singular:"mouse",  plural:"mice",   img1:ASSET("mouse_1.png"),  img3:ASSET("mice_3.png") },
-  { key:"man",    singular:"man",    plural:"men",    img1:ASSET("man_1.png"),    img3:ASSET("men_3.png") },
-  { key:"woman",  singular:"woman",  plural:"women",  img1:ASSET("woman_1.png"),  img3:ASSET("women_3.png") },
+// ================= DATA =================
+const ASSET = p => `assets/${p}`;
+const DATA = [
+  { key:"goose", s:"goose", p:"geese", i1:ASSET("goose_1.png"), i3:ASSET("geese_3.png") },
+  { key:"sheep", s:"sheep", p:"sheep", i1:ASSET("sheep_1.png"), i3:ASSET("sheep_3.png") },
+  { key:"deer",  s:"deer",  p:"deer",  i1:ASSET("deer_1.png"),  i3:ASSET("deer_3.png") },
+  { key:"fish",  s:"fish",  p:"fish",  i1:ASSET("fish_1.png"),  i3:ASSET("fish_3.png") },
+  { key:"mouse", s:"mouse", p:"mice",  i1:ASSET("mouse_1.png"), i3:ASSET("mice_3.png") },
+  { key:"man",   s:"man",   p:"men",   i1:ASSET("man_1.png"),   i3:ASSET("men_3.png") },
+  { key:"woman", s:"woman", p:"women", i1:ASSET("woman_1.png"), i3:ASSET("women_3.png") },
 ];
 
+// ================= STATE =================
+let state = {
+  score: 0,
+  hearts: 3,
+  isPlaying: false,
+  mode: 'tap', // 'tap' or 'shooter'
+  bg: 'underwater',
+  particleImg: null, // null = auto
+  bubbles: [],
+  target: null
+};
 
-  const LEVELS = [
-    { id:1, name:"🟢 обучающий", color:"var(--good)",  bubbles:10, speed:0.60, goal:10, timerSec:0,  mode:"word",     showText:true  },
-    { id:2, name:"🔵 стандарт",  color:"var(--blue)",  bubbles:14, speed:0.90, goal:12, timerSec:60, mode:"word",     showText:true  },
-    { id:3, name:"🟣 сюжетный",  color:"var(--purple)",bubbles:16, speed:1.05, goal:12, timerSec:60, mode:"sentence", showText:true  },
-    { id:4, name:"🔴 челлендж",  color:"var(--red)",   bubbles:18, speed:1.25, goal:14, timerSec:45, mode:"word",     showText:false },
-  ];
+// ================= AUDIO =================
+// Simple synth for effects (no external files needed for logic)
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = new AudioCtx();
 
-  // =========================
-  // HELPERS
-  // =========================
-  const $ = (sel) => document.querySelector(sel);
-  const field = $("#field");
-  const overlay = $("#overlay");
-  const btnClose = $("#btnClose");
-  const btnLevel = $("#btnLevel");
-  const btnReset = $("#btnReset");
-  const btnSpeak = $("#btnSpeak");
-  const subtitle = $("#subtitle");
-  const chips = $("#chips");
-  const progressFill = $("#progressFill");
-  const scoreText = $("#scoreText");
-  const goalText = $("#goalText");
-  const timeText = $("#timeText");
-
-  const clamp = (v,min,max) => Math.max(min, Math.min(max, v));
-  const rnd = (a,b) => a + Math.random()*(b-a);
-  const pick = (arr) => arr[Math.floor(Math.random()*arr.length)];
-  const shuffle = (arr) => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
-
-  // WebAudio pop (simple)
-  let audioCtx = null;
-  function ensureAudio(){
-    if(!audioCtx){
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if(audioCtx.state === "suspended") audioCtx.resume();
+function playSound(type){
+  if(actx.state === 'suspended') actx.resume();
+  const osc = actx.createOscillator();
+  const gain = actx.createGain();
+  osc.connect(gain);
+  gain.connect(actx.destination);
+  
+  const now = actx.currentTime;
+  
+  if(type === 'pop-soft'){ // Bubbles tap
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(600, now+0.1);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now+0.1);
+    osc.start(now); osc.stop(now+0.15);
   }
-  function playPop(ok=true){
-    if(!audioCtx) return;
-    const t = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = ok ? "triangle" : "square";
-    o.frequency.setValueAtTime(ok ? 520 : 180, t);
-    o.frequency.exponentialRampToValueAtTime(ok ? 260 : 120, t + 0.10);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-    o.connect(g).connect(audioCtx.destination);
-    o.start(t);
-    o.stop(t + 0.16);
+  else if(type === 'pop-hard'){ // Shooter explosion
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.exponentialRampToValueAtTime(50, now+0.2);
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now+0.2);
+    osc.start(now); osc.stop(now+0.25);
   }
-
-  // Speech (TTS)
-  function speak(text){
-    try{
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-US";
-      u.rate = 0.92;
-      u.pitch = 1.0;
-      window.speechSynthesis.speak(u);
-    }catch(e){}
+  else if(type === 'win'){
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.linearRampToValueAtTime(800, now+0.3);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.linearRampToValueAtTime(0, now+0.5);
+    osc.start(now); osc.stop(now+0.5);
   }
+  else if(type === 'lose'){
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.linearRampToValueAtTime(100, now+0.3);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.linearRampToValueAtTime(0, now+0.4);
+    osc.start(now); osc.stop(now+0.4);
+  }
+}
 
-  // =========================
-  // GAME STATE
-  // =========================
-  let levelIndex = 0;
-  let level = LEVELS[levelIndex];
-  let score = 0;
-  let goal = level.goal;
-  let timeLeft = level.timerSec;
-  let timerHandle = null;
+function speak(text){
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US'; u.rate = 0.9;
+  window.speechSynthesis.speak(u);
+}
 
-  let target = null;   // { item, form: "singular"|"plural", text, audioText }
-  let bubbles = [];    // {el,x,y,vx,vy,isCorrect}
+// ================= GAME LOGIC =================
+function startGame(){
+  document.getElementById('start-screen').style.display = 'none';
+  state.isPlaying = true;
+  state.score = 0;
+  state.hearts = 3;
+  updateHud();
+  startRound();
+  initParticles();
+}
 
-  function updateUI(){
-    btnLevel.textContent = `Уровень: ${["🟢","🔵","🟣","🔴"][levelIndex]}`;
-    goalText.textContent = String(goal);
-    scoreText.textContent = String(score);
-    progressFill.style.width = `${clamp((score/goal)*100,0,100)}%`;
+function startRound(){
+  // Clear old
+  document.getElementById('field').innerHTML = '';
+  state.bubbles = [];
+  
+  // Pick target
+  const item = DATA[Math.floor(Math.random()*DATA.length)];
+  const form = Math.random() > 0.5 ? 'p' : 's';
+  const word = form==='p' ? item.p : item.s;
+  const targetImg = form==='p' ? item.i3 : item.i1;
+  const phrase = `Find: ${word}`;
+  
+  state.target = { word, img: targetImg };
+  
+  // UI
+  document.getElementById('ui-target').innerText = phrase;
+  document.getElementById('ui-target').style.animation = 'none';
+  void document.getElementById('ui-target').offsetWidth;
+  document.getElementById('ui-target').style.animation = 'popIn 0.5s';
+  speak(word); // Auto speak
+  
+  // Spawn Bubbles (1 Correct + 5 Distractors)
+  let pool = [];
+  pool.push({ img:targetImg, correct:true });
+  
+  for(let i=0; i<5; i++){
+    const rndItem = DATA[Math.floor(Math.random()*DATA.length)];
+    const rndForm = Math.random() > 0.5 ? 'p' : 's';
+    const img = rndForm==='p' ? rndItem.i3 : rndItem.i1;
+    // Simple check to avoid duplicate correct image
+    if(img !== targetImg) pool.push({ img:img, correct:false });
+    else i--; // retry
+  }
+  pool.sort(()=>Math.random()-0.5);
+  
+  pool.forEach(p => createBubble(p));
+}
 
-    if(level.timerSec > 0){
-      timeText.textContent = `${timeLeft}s`;
+function createBubble(data){
+  const el = document.createElement('div');
+  el.className = 'bubble';
+  el.innerHTML = `<div class="bubble-bg"></div><img src="${data.img}">`;
+  
+  // Random Position & Speed
+  let x = Math.random() * (window.innerWidth - 100);
+  let y = Math.random() * (window.innerHeight - 200) + 100;
+  let vx = (Math.random()-0.5) * 2;
+  let vy = (Math.random()-0.5) * 2;
+  
+  el.style.left = x+'px';
+  el.style.top = y+'px';
+  
+  el.onpointerdown = (e) => {
+    e.stopPropagation();
+    hitBubble(el, data.correct);
+  };
+  
+  document.getElementById('field').appendChild(el);
+  state.bubbles.push({ el, x, y, vx, vy });
+}
+
+function hitBubble(el, isCorrect){
+  if(isCorrect){
+    // Win logic
+    playSound(state.mode === 'shooter' ? 'pop-hard' : 'pop-soft');
+    createExplosion(el.offsetLeft+50, el.offsetTop+50, true);
+    state.score++;
+    updateHud();
+    el.remove();
+    setTimeout(startRound, 500);
+  } else {
+    // Lose logic
+    playSound('lose');
+    state.hearts--;
+    updateHud();
+    el.style.filter = 'grayscale(1) brightness(0.5)';
+    createExplosion(el.offsetLeft+50, el.offsetTop+50, false);
+    
+    if(state.hearts <= 0) gameOver();
+  }
+}
+
+function createExplosion(x, y, success){
+  const div = document.createElement('div');
+  div.className = 'pop-effect';
+  div.style.left = (x-50)+'px';
+  div.style.top = (y-50)+'px';
+  div.style.width = '100px';
+  div.style.height = '100px';
+  div.style.background = success 
+    ? (state.mode === 'shooter' ? 'radial-gradient(circle, #fbbf24, transparent)' : 'radial-gradient(circle, #a5f3fc, transparent)')
+    : 'radial-gradient(circle, #ef4444, transparent)';
+  div.style.borderRadius = '50%';
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(), 500);
+}
+
+function gameOver(){
+  state.isPlaying = false;
+  document.querySelector('.instruct-card h1').innerText = "Game Over!";
+  document.querySelector('.instruct-card p').innerText = `Твой счет: ${state.score}`;
+  document.getElementById('start-screen').style.display = 'flex';
+}
+
+function updateHud(){
+  document.getElementById('ui-score').innerText = state.score;
+  document.getElementById('ui-hearts').innerText = '❤'.repeat(state.hearts);
+}
+
+// ================= LOOP & PARTICLES =================
+function loop(){
+  if(!state.isPlaying) { requestAnimationFrame(loop); return; }
+  
+  state.bubbles.forEach(b => {
+    b.x += b.vx;
+    b.y += b.vy;
+    
+    // Bounce
+    if(b.x < 0 || b.x > window.innerWidth-100) b.vx *= -1;
+    if(b.y < 50 || b.y > window.innerHeight-100) b.vy *= -1;
+    
+    b.el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+  });
+  
+  requestAnimationFrame(loop);
+}
+loop();
+
+function initParticles(){
+  const layer = document.getElementById('particles-layer');
+  layer.innerHTML = '';
+  // Determine particle type based on bg
+  let type = 'circle';
+  let color = 'rgba(255,255,255,0.2)';
+  
+  if(state.bg === 'underwater') type = 'bubble';
+  if(state.bg === 'forest') { type = 'firefly'; color='#fef08a'; }
+  if(state.bg === 'space') { type = 'star'; }
+  
+  for(let i=0; i<20; i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    let size = Math.random()*10 + 5;
+    
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.left = Math.random()*100 + 'vw';
+    p.style.top = Math.random()*100 + 'vh';
+    
+    if(state.particleImg){
+      p.style.backgroundImage = `url(${state.particleImg})`;
+      p.style.backgroundSize = 'contain';
     } else {
-      timeText.textContent = "—";
+      p.style.background = color;
+      p.style.borderRadius = '50%';
+      if(type === 'star') p.style.clipPath = 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
     }
-
-    chips.innerHTML = "";
-    const chip1 = document.createElement("span");
-    chip1.className = "chip";
-    chip1.textContent = level.name;
-    chips.appendChild(chip1);
-
-    const chip2 = document.createElement("span");
-    chip2.className = "chip";
-    chip2.textContent = level.mode === "sentence" ? "Предложения" : "Слова";
-    chips.appendChild(chip2);
-
-    const chip3 = document.createElement("span");
-    chip3.className = "chip";
-    chip3.textContent = level.timerSec ? `Таймер: ${level.timerSec}s` : "Без таймера";
-    chips.appendChild(chip3);
+    
+    // CSS Animation for movement
+    let dur = Math.random()*10 + 5;
+    p.style.transition = `top ${dur}s linear, opacity 2s`;
+    
+    layer.appendChild(p);
+    
+    // Simple reset loop for CSS
+    setInterval(()=>{
+      p.style.top = '-10px';
+      setTimeout(()=>{ 
+        p.style.transition = 'none'; 
+        p.style.top = '110vh'; 
+        setTimeout(()=>{ p.style.transition = `top ${dur}s linear`; },100);
+      }, dur*1000);
+    }, Math.random()*5000);
   }
+}
 
-  function sentenceFor(item, form){
-    const qty = (form === "plural") ? "three" : "one";
-    const word = (form === "plural") ? item.plural : item.singular;
-    return `I can see ${qty} ${word}.`;
-  }
+// ================= EDITOR FUNCTIONS =================
+function toggleEditor(){
+  const el = document.getElementById('editor-modal');
+  el.classList.toggle('open');
+}
 
-  function pickTarget(){
-    const item = pick(DATA);
-    const form = Math.random() < 0.5 ? "singular" : "plural";
-    const word = (form === "plural") ? item.plural : item.singular;
+function setBg(name){
+  state.bg = name;
+  const bgEl = document.getElementById('bg-layer');
+  if(name==='underwater') bgEl.style.backgroundImage = `url('assets/bg_underwater.jpg')`;
+  if(name==='forest') bgEl.style.backgroundImage = `url('assets/bg_forest.jpg')`;
+  if(name==='space') bgEl.style.backgroundImage = `url('assets/bg_space.jpg')`;
+  if(name==='sunset') bgEl.style.backgroundImage = `url('assets/bg_sunset.jpg')`;
+  if(name==='park') bgEl.style.backgroundImage = `url('assets/bg_park.jpg')`;
+  
+  initParticles(); // refresh particles
+}
 
-    const text = level.mode === "sentence"
-      ? sentenceFor(item, form)
-      : word;
-
-    const audioText = text; // same for now
-    return { item, form, word, text, audioText };
-  }
-
-  function makeBubble(stickerUrl, isCorrect){
-    const el = document.createElement("div");
-    el.className = "bubble";
-    el.setAttribute("role","button");
-    el.setAttribute("aria-label", isCorrect ? "correct bubble" : "bubble");
-
-    const img = document.createElement("img");
-    img.src = stickerUrl;
-    img.alt = "";
-    el.appendChild(img);
-
-    const size = rnd(96, 116);
-    el.style.width = `${size}px`;
-    el.style.height = `${size}px`;
-    img.style.width = `${Math.round(size)}px`;
-    img.style.height = `${Math.round(size)}px`;
-
-    field.appendChild(el);
-    return el;
-  }
-
-  function clearField(){
-    field.innerHTML = "";
-    bubbles = [];
-  }
-
-  function chooseSticker(item, form){
-    return (form === "plural") ? item.img3 : item.img1;
-  }
-
-  function spawnRound(){
-    clearField();
-    target = pickTarget();
-
-    // Текст подсказки (можно выключить на красном)
-    subtitle.textContent = level.showText
-      ? `Нажми: ${target.text}`
-      : `Слушай и нажимай правильно`;
-
-    // Озвучка
-    speak(target.audioText);
-
-    // Сформируем набор пузырей: 1 правильный + остальные отвлекающие
-    const correctSticker = chooseSticker(target.item, target.form);
-
-    // Сколько пузырей сделать (по уровню)
-    const n = level.bubbles;
-
-    // Пул отвлекающих: другие животные и/или другая форма того же
-    const distractors = [];
-    for(const it of DATA){
-      distractors.push(chooseSticker(it, "singular"));
-      distractors.push(chooseSticker(it, "plural"));
+function uploadBg(input){
+  if(input.files && input.files[0]){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      document.getElementById('bg-layer').style.backgroundImage = `url(${e.target.result})`;
     }
-
-    // Уберём правильный стикер из отвлекающих, чтобы не было дубля
-    const pool = distractors.filter(u => u !== correctSticker);
-
-    // Собираем список картинок пузырей
-    let stickers = [correctSticker];
-    while(stickers.length < n){
-      stickers.push(pick(pool));
-    }
-    stickers = shuffle(stickers);
-
-    // Создаём пузыри
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    for(const url of stickers){
-      const isCorrect = (url === correctSticker);
-      const el = makeBubble(url, isCorrect);
-
-      const x = rnd(20, w-140);
-      const y = rnd(90, h-140);
-
-      const vx = rnd(-1,1) * level.speed * 80;
-      const vy = rnd(-1,1) * level.speed * 80;
-
-      const b = { el, x, y, vx, vy, isCorrect, alive:true };
-
-      el.style.left = `${x}px`;
-      el.style.top = `${y}px`;
-
-      el.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        onTapBubble(b);
-      });
-
-      bubbles.push(b);
-    }
+    reader.readAsDataURL(input.files[0]);
   }
+}
 
-  function onTapBubble(b){
-    if(!b.alive) return;
-
-    if(b.isCorrect){
-      b.alive = false;
-      b.el.classList.add("pop");
-      playPop(true);
-
-      score += 1;
-      goal = level.goal;
-      updateUI();
-
-      // Переход/следующий раунд
-      setTimeout(() => {
-        if(score >= goal){
-          winLevel();
-        } else {
-          spawnRound();
-        }
-      }, 220);
-    } else {
-      b.el.classList.remove("wrong");
-      void b.el.offsetWidth; // restart animation
-      b.el.classList.add("wrong");
-      playPop(false);
+function uploadParticle(input){
+  if(input.files && input.files[0]){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      state.particleImg = e.target.result;
+      initParticles();
     }
+    reader.readAsDataURL(input.files[0]);
   }
+}
 
-  function winLevel(){
-    clearInterval(timerHandle);
-    timerHandle = null;
+function updateSettings(){
+  const isShooter = document.getElementById('mode-switch').checked;
+  state.mode = isShooter ? 'shooter' : 'tap';
+}
 
-    overlay.style.display = "flex";
-    overlay.querySelector("h1").textContent = "Уровень пройден!";
-    overlay.querySelector("p").innerHTML =
-      `Отлично! Ты собрал нужное количество правильных ответов.<br/>Нажми <b>Next</b>, чтобы продолжить.`;
+document.getElementById('btn-sound').onclick = () => { speak(state.target.word); }
 
-    btnClose.textContent = (levelIndex < 3) ? "Next" : "Play again";
-  }
-
-  function resetLevel(){
-    clearInterval(timerHandle);
-    timerHandle = null;
-
-    score = 0;
-    goal = level.goal;
-    timeLeft = level.timerSec;
-
-    overlay.style.display = "none";
-    updateUI();
-
-    if(level.timerSec > 0){
-      timerHandle = setInterval(() => {
-        timeLeft -= 1;
-        if(timeLeft <= 0){
-          timeLeft = 0;
-          updateUI();
-          // проигрыш по времени: просто перезапуск уровня
-          score = 0;
-          timeLeft = level.timerSec;
-          spawnRound();
-        } else {
-          updateUI();
-        }
-      }, 1000);
-    }
-
-    spawnRound();
-  }
-
-  // Movement loop
-  let last = performance.now();
-  function tick(now){
-    const dt = Math.min(0.032, (now-last)/1000);
-    last = now;
-
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    for(const b of bubbles){
-      if(!b.alive) continue;
-
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
-
-      // bounce
-      const rect = b.el.getBoundingClientRect();
-      const bw = rect.width, bh = rect.height;
-
-      if(b.x < 10){ b.x = 10; b.vx *= -1; }
-      if(b.y < 80){ b.y = 80; b.vy *= -1; }
-      if(b.x > w - bw - 10){ b.x = w - bw - 10; b.vx *= -1; }
-      if(b.y > h - bh - 10){ b.y = h - bh - 10; b.vy *= -1; }
-
-      b.el.style.left = `${b.x}px`;
-      b.el.style.top = `${b.y}px`;
-    }
-
-    requestAnimationFrame(tick);
-  }
-
-  // Controls
-  btnSpeak.addEventListener("click", () => {
-    ensureAudio();
-    if(target) speak(target.audioText);
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if(e.code === "Space"){
-      e.preventDefault();
-      ensureAudio();
-      if(target) speak(target.audioText);
-    }
-  });
-
-  btnLevel.addEventListener("click", () => {
-    levelIndex = (levelIndex + 1) % LEVELS.length;
-    level = LEVELS[levelIndex];
-    // восстановить текст стартового окна (если открыто)
-    overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
-    overlay.querySelector("p").textContent =
-      "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
-    btnClose.textContent = "Start";
-    overlay.style.display = "flex";
-  });
-
-  btnReset.addEventListener("click", () => {
-    ensureAudio();
-    resetLevel();
-  });
-
-  btnClose.addEventListener("click", () => {
-    ensureAudio();
-
-    // если это Next после победы — переключаем уровень
-    if(btnClose.textContent === "Next"){
-      levelIndex += 1;
-      level = LEVELS[levelIndex];
-      btnClose.textContent = "Start";
-      overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
-      overlay.querySelector("p").textContent =
-        "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
-      resetLevel();
-      return;
-    }
-
-    if(btnClose.textContent === "Play again"){
-      levelIndex = 0;
-      level = LEVELS[levelIndex];
-      btnClose.textContent = "Start";
-      overlay.querySelector("h1").textContent = "Старт игры (звук + пузыри)";
-      overlay.querySelector("p").textContent =
-        "Нажми Start, чтобы включить озвучку и начать ловить правильные формы множественного числа.";
-      resetLevel();
-      return;
-    }
-
-    resetLevel();
-  });
-
-  // Start
-  updateUI();
-  requestAnimationFrame(tick);
-})();
 </script>
 </body>
 </html>
